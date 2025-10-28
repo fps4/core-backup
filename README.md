@@ -1,6 +1,6 @@
-# FPS GitHub Backup
+# GitHub Backup
 
-`fps-github-backup` is a containerized utility that captures daily snapshots of GitHub repositories and related metadata. Each run mirrors the repositories, exports issues/PRs/projects, stores the artifacts under a date-based folder structure, and enforces time-based retention.
+`github-backup` is a containerized utility that captures daily snapshots of GitHub repositories and related metadata. Each run mirrors the repositories, exports issues/PRs/projects, stores the artifacts under a date-based folder structure, and enforces time-based retention.
 
 ## Features
 - Mirrors repositories (including optional wikis) and packages them as compressed archives.
@@ -13,7 +13,7 @@
 1. Copy `config/github-backup.yaml.example` and adjust values for your organization. Provide a GitHub token or SSH key via mounted secrets.
 2. Build the image:
    ```bash
-   docker build -t fps-github-backup .
+   docker build -t github-backup .
    ```
 3. Run the container on a schedule, mounting your config and backup volume:
    ```bash
@@ -21,7 +21,7 @@
      -v /path/to/config:/opt/github-backup/config:ro \
      -v /mnt/backups/github:/mnt/backups/github \
      -e GITHUB_TOKEN=... \
-     fps-github-backup
+     github-backup
    ```
 
 ## Configuration
@@ -43,7 +43,7 @@ Run locally with environment variables pointing at your configuration:
 export CONFIG_PATH=./config/github-backup.yaml
 export STORAGE_BASE_PATH=./backups
 export GITHUB_TOKEN=...
-python -m fps_github_backup.entrypoint
+python -m github_backup.entrypoint
 ```
 
 ## Roadmap Ideas

@@ -1,0 +1,27 @@
+jobs:
+  - name: github-daily
+    service: github
+    target_storage: local
+    retention_days: 30
+    options:
+      organization: my-org
+      auth:
+        token_env: GITHUB_TOKEN
+      repositories:
+        - name: repo-one
+          include_wiki: true
+          include_projects: true
+        - name: repo-two
+          include_releases: true
+      organization_exports:
+        members: true
+        teams: false
+        projects: true
+      include_actions_artifacts: false
+storage:
+  local:
+    type: filesystem
+    base_path: /mnt/backups/core
+notifications:
+  slack_webhook_env: SLACK_WEBHOOK
+default_retention_days: 30

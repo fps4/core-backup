@@ -25,4 +25,4 @@ ENV PYTHONPATH=/app/src \
     STORAGE_BASE_PATH=/mnt/backups/github \
     LOG_LEVEL=INFO
 
-ENTRYPOINT ["python", "-m", "fps_github_backup.entrypoint"]
+ENTRYPOINT ["python", "-m", "github_backup.entrypoint"]
