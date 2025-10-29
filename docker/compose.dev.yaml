@@ -1,0 +1,5 @@
+services:
+  core-backup:
+    environment:
+      LOG_LEVEL: DEBUG
+      NODE_ENV: development

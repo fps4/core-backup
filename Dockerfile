@@ -19,6 +19,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src ./src
+COPY config/*.yaml /opt/github-backup/config/
 
 ENV PYTHONPATH=/app/src \
     CONFIG_PATH=/opt/github-backup/config/github-backup.yaml \

@@ -1,34 +1,29 @@
 # GitHub Backup Operations Guide
 
-This document captures how we run the GitHub backup service while keeping sensitive configuration private.
+This document captures how we run the GitHub backup service while keeping configuration versioned and secrets external to Git.
 
 ## Repository Layout
-- **Public code**: `core-backup` (this repository) contains the Docker image, CLI, and service implementation.
-- **Private configuration**: `project-core-backup` (private repo) stores YAML configs, environment overrides, and references to secrets (never the raw secrets themselves).
-- Repos should live as siblings, e.g.:
-  ```
-  ~/Projects/
-    core-backup/
-    project-core-backup/
-  ```
+- **Code and templates**: `core-backup/` (this repository) includes the Docker image, CLI, and example configuration under `config/`.
+- **Authoritative config**: maintain your runtime YAML in `config/github-backup.yaml` (or another directory you reference through `BACKUP_CONFIG_DIR`); keep sensitive values out of Git.
+- **Secrets**: store tokens, SSH keys, and webhooks in your secrets manager. Surface them at runtime via environment variables, Docker secrets, or mounted files.
+- **Backups**: point `BACKUP_DATA_DIR` at the host directory where dated archives and manifests should land (e.g., `/srv/backups/github`).
 
-## Running Backups from `project-core-backup`
-1. Clone both repositories side-by-side.
-2. In `project-core-backup`, maintain `config/github-backup.yaml` and any additional files the container should mount.
-3. Schedule or manually run the stack:
+## Running Backups
+1. Clone this repository and update `config/github-backup.yaml` (copy from `config/github-backup.yaml.example` if you need a starting point).
+2. Export the required environment variables before invoking Docker Compose:
    ```bash
-   cd ../project-core-backup
+   cd /path/to/core-backup
    BACKUP_CONFIG_DIR=$(pwd)/config \
    BACKUP_DATA_DIR=/srv/backups/github \
    GITHUB_TOKEN=... \
-   docker compose -f ../core-backup/docker/compose.yaml \
-                  -f ../core-backup/docker/compose.prod.yaml up -d --build
+   docker compose -f docker/compose.yaml \
+                  -f docker/compose.prod.yaml up -d --build
    ```
-   - `BACKUP_CONFIG_DIR` should point at the private config directory.
-   - `BACKUP_DATA_DIR` is the host path where dated backups will be written.
-   - Provide credentials via environment variables or Docker secrets; never commit them.
-
-4. Optionally wrap the compose call in a script or GitHub Actions workflow inside `project-core-backup` so operators only interact with that private repo.
+   - Override `BACKUP_CONFIG_DIR` if your configs live elsewhere.
+   - Ensure `BACKUP_DATA_DIR` has sufficient storage and appropriate permissions.
+   - Inject secrets through environment variables or Docker secrets; never commit them.
+3. For recurring runs, integrate the same command into cron, systemd, or (later) GitHub Actions.
+4. Optional: wrap the exports and compose invocation in a shell script checked into the repo so operators have a single entrypoint; reference secrets from your vault when the script executes.
 
 ## Configuration Tips
 - Leave `github.repositories` empty to back up every repository in the organization automatically. The token must have read access to the organization and its private repositories.
@@ -42,5 +37,5 @@ This document captures how we run the GitHub backup service while keeping sensit
 - The `manifest.json` file summarizes artifacts and errors for each run; inspect it when triaging alerts.
 
 ## Keeping Things in Sync
-- Treat `core-backup` as the upstream; avoid editing code inside `project-core-backup`.
-- For local development, run unit tests or dry runs from `core-backup` but keep sample configs under `project-core-backup` to avoid leaking internal details.
+- Keep application code and configuration templates up to date by following the main branch of `core-backup`.
+- For local development, run unit tests or dry runs from `core-backup`, and commit only redacted configuration examples—use environment variables for any sensitive values.

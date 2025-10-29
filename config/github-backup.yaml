@@ -1,0 +1,18 @@
+github:
+  organization: fps4
+  auth:
+    token_env: GITHUB_TOKEN
+    ssh_key_path: /secrets/github_id_rsa
+  retention_days: 30
+  organization_exports:
+    members: true
+    teams: true
+    projects: true
+  include_actions_artifacts: false
+storage:
+  base_path: /mnt/backups/github
+logging:
+  level: info
+  emit_metrics: true
+notifications:
+  slack_webhook_env: SLACK_BACKUP_WEBHOOK

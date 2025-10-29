@@ -39,10 +39,10 @@ notifications:
 ```
 - Secrets should be supplied via environment variables or injected files, not committed to Git.
 - When providing an explicit `repositories` list, per-repo flags (`include_wiki`, `include_projects`, etc.) tailor export scope.
-- The Docker Compose file binds configuration from `BACKUP_CONFIG_DIR` (typically `../project-core-backup/config`) and backups from `BACKUP_DATA_DIR`.
+- The Docker Compose file binds configuration from `BACKUP_CONFIG_DIR` (defaults to `${repo_root}/config`) and backups from `BACKUP_DATA_DIR`.
 
 ## Scheduling Patterns
-- **Cron/systemd on infrastructure hosts**: call the compose file from the private repo.
+- **Cron/systemd on infrastructure hosts**: invoke the compose files in this repo from a wrapper script that exports `BACKUP_CONFIG_DIR`, `BACKUP_DATA_DIR`, and credentials.
 - **GitHub Actions self-hosted runners**: use the provided workflow (`.github/workflows/deploy.yml`) to trigger Docker Compose on runner labels.
 - **Kubernetes**: wrap the image in a CronJob manifest mounting persistent storage at `/mnt/backups/github`.
 

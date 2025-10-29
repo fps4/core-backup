@@ -42,5 +42,5 @@ default_retention_days: 30
 
 ## Operational Notes
 - Schedule the CLI via cron, systemd, or GitHub Actions using the Docker Compose wrapper documented in the project `README.md`.
-- Configuration and secrets should live in the private `project-core-backup` repository and be mounted into the container via `BACKUP_CONFIG_DIR`.
+- Configuration lives under `config/` in this repository; mount it via `BACKUP_CONFIG_DIR` and source secrets from your secrets manager at runtime.
 - Future connectors can register with `core_backup.services.create_service`; update the CLI docs when new services ship.

@@ -1,0 +1,16 @@
+services:
+  core-backup:
+    container_name: core-backup
+    build:
+      context: ${CORE_BACKUP_PATH:-../}
+      dockerfile: ${CORE_BACKUP_DOCKERFILE:-Dockerfile}
+    restart: unless-stopped
+    environment:
+      CONFIG_PATH: ${CONFIG_PATH:-/opt/github-backup/config/github-backup.yaml}
+      STORAGE_BASE_PATH: ${STORAGE_BASE_PATH:-/mnt/backups/github}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    volumes:
+      - type: bind
+        source: ${BACKUP_DATA_DIR:-../backups}
+        target: /mnt/backups/github

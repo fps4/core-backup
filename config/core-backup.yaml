@@ -1,0 +1,21 @@
+jobs:
+  - name: github-daily
+    service: github
+    target_storage: local
+    retention_days: 30
+    options:
+      organization: fps4
+      auth:
+        token_env: GITHUB_TOKEN
+      organization_exports:
+        members: true
+        teams: false
+        projects: true
+      include_actions_artifacts: false
+storage:
+  local:
+    type: filesystem
+    base_path: /mnt/backups/core
+notifications:
+  slack_webhook_env: SLACK_WEBHOOK
+default_retention_days: 30

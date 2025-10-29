@@ -28,9 +28,9 @@
 - Storage definitions map logical names (e.g., `local`) to host paths mounted into the container.
 
 ## Deployment Pattern
-- The public codebase lives in this repository.
-- All environment-specific configuration remains in the private sibling repo `project-core-backup`. Docker Compose binds that directory into the container using `BACKUP_CONFIG_DIR`.
-- Automation (GitHub Actions, cron, systemd timers) shells out to the compose file in `core-backup` while exporting paths from the private repo, ensuring secrets never land in the public tree.
+- The codebase and default configuration live together in this repository.
+- Environment-specific configuration stays under `config/` (or another directory you pass through `BACKUP_CONFIG_DIR`); keep secrets in your vault and inject them at runtime via environment variables or mounted files.
+- Automation (GitHub Actions, cron, systemd timers) shells out to the compose file in `core-backup` while exporting `BACKUP_CONFIG_DIR`, `BACKUP_DATA_DIR`, and credentials, ensuring secrets never land in Git.
 
 ## Data Retention & Observability
 - Each job enforces a configurable retention period (default 30 days) by pruning dated backup folders.

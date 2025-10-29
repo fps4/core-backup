@@ -10,7 +10,7 @@
 - Ships as a slim Python+Git Docker image ready for cron-driven execution.
 
 ## Quick Start
-1. Copy `config/github-backup.yaml.example` (or create the file in a sibling private repository such as `../project-core-backup/config/github-backup.yaml`) and adjust values for your organization. Provide a GitHub token or SSH key via mounted secrets.
+1. Copy `config/github-backup.yaml.example` to `config/github-backup.yaml` (or point `CONFIG_PATH` at your own file) and adjust values for your organization. Provide a GitHub token or SSH key via mounted secrets.
 2. Build the image:
    ```bash
    docker build -t github-backup .
@@ -33,18 +33,12 @@ The service is configured via YAML (see `config/github-backup.yaml.example`). Ke
 
 Secrets (e.g., `GITHUB_TOKEN`) should be provided through environment variables or mounted files rather than embedded in the YAML.
 
-## Private Configuration Repository
-To keep production configuration private while making this codebase public:
-- Maintain a separate repo like `project-core-backup` that contains only secrets-free manifests (for example `config/github-backup.yaml`, SSH keys in a secrets store, and environment overrides).
-- Clone the two repositories side-by-side: `core-backup/` (public code) and `project-core-backup/` (private config). The default Docker Compose file already binds `../../project-core-backup/config` into the container; override `BACKUP_CONFIG_DIR` if your layout differs.
-- From inside `project-core-backup`, run:
-  ```bash
-  BACKUP_CONFIG_DIR=$(pwd)/config \
-  BACKUP_DATA_DIR=/srv/backups/github \
-  docker compose -f ../core-backup/docker/compose.yaml -f ../core-backup/docker/compose.prod.yaml up -d --build
-  ```
-  (Adjust the path to `core-backup` based on where you invoke the command.)
-- Optional: add a wrapper script or GitHub Actions workflow inside `project-core-backup` that exports the same environment variables and delegates to the `core-backup` compose file, so operators only interact with the private repo.
+## Configuration Layout
+Production configuration now lives alongside the code in this repository under `config/`. Keep secrets (tokens, SSH keys, webhooks) in your preferred secrets manager and inject them at runtime via environment variables, Docker secrets, or mounted files. When running via Docker Compose:
+- Point `BACKUP_CONFIG_DIR` at the directory that contains your finalized YAML (defaults to `${PWD}/config` when invoked from the repo root).
+- Set `BACKUP_DATA_DIR` to the host filesystem path where you want dated backups stored.
+- Export `GITHUB_TOKEN` (and any other credentials) before invoking `docker compose -f docker/compose.yaml -f docker/compose.prod.yaml up -d --build`.
+- Wrap these exports in a script or GitHub Actions workflow if you want a single command for operators; commit only the script templates—reference secrets from your vault at runtime.
 
 ## Local Development
 Install dependencies (Python 3.11+):
