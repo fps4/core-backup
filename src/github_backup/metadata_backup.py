@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from requests import HTTPError
+
 from .config import GitHubConfig, OrganizationExportsConfig, RepositoryConfig
 from .github_api import GitHubAPI
+
+LOG = logging.getLogger(__name__)
 
 
 def backup_repository_metadata(
@@ -34,7 +39,12 @@ def backup_repository_metadata(
         counts["releases"] = len(releases)
 
     if repo_cfg.include_projects:
-        projects = list(api.iterate(f"repos/{repo_slug}/projects"))
+        projects = _fetch_classic_projects(
+            api,
+            f"repos/{repo_slug}/projects",
+            identifier=repo_slug,
+            scope="repository",
+        )
         _write_json(repo_dir / "projects.json", projects)
         counts["projects"] = len(projects)
 
@@ -71,7 +81,12 @@ def backup_organization_metadata(
         counts["org_teams"] = len(teams)
 
     if exports.projects:
-        projects = list(api.iterate(f"orgs/{org}/projects"))
+        projects = _fetch_classic_projects(
+            api,
+            f"orgs/{org}/projects",
+            identifier=org,
+            scope="organization",
+        )
         _write_json(org_dir / "projects.json", projects)
         counts["org_projects"] = len(projects)
 
@@ -81,3 +96,24 @@ def backup_organization_metadata(
 def _write_json(path: Path, payload: List[Dict]) -> None:
     with path.open("w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False, indent=2)
+
+
+def _fetch_classic_projects(
+    api: GitHubAPI,
+    path: str,
+    *,
+    identifier: str,
+    scope: str,
+) -> List[Dict]:
+    try:
+        return list(api.iterate(path))
+    except HTTPError as exc:
+        status = getattr(exc.response, "status_code", None)
+        if status == 410:
+            LOG.info(
+                "Skipping classic Projects export for %s '%s': API returned 410 (deprecated)",
+                scope,
+                identifier,
+            )
+            return []
+        raise
