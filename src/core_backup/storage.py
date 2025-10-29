@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .config import JobConfig, StorageConfig
 from .job_engine import RunPaths
-from github_backup.retention import enforce_retention as legacy_enforce_retention
+from .github.retention import enforce_retention
 
 
 @dataclass
@@ -25,7 +25,7 @@ class FilesystemStorageAdapter:
 
     def enforce_retention(self, job: JobConfig, retention_days: int) -> None:
         job_root = self.base_path / job.name
-        legacy_enforce_retention(job_root, retention_days)
+        enforce_retention(job_root, retention_days)
 
 
 def build_storage_adapter(name: str, config: StorageConfig) -> FilesystemStorageAdapter:

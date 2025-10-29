@@ -11,9 +11,9 @@ from pathlib import Path
 from typing import List, Optional, Sequence
 
 from croniter import croniter
-from github_backup.logger import configure_logging
 from zoneinfo import ZoneInfo
 
+from .logging_utils import configure_logging
 from .config import ConfigurationError, CoreConfig, SchedulerConfig, load_config
 from .orchestrator import BackupOrchestrator
 from .services import create_service

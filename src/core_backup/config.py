@@ -88,17 +88,31 @@ class GitHubAuthConfig(BaseModel):
 
 class GitHubJobOptions(BaseModel):
     organization: Optional[str] = Field(default=None, description="Organization scope for repositories.")
-    repositories: List[GitHubRepositoryOptions]
+    repositories: Optional[List[GitHubRepositoryOptions]] = Field(
+        default=None,
+        description="Explicit repositories to back up. Omit to include all repositories in the organization.",
+    )
     organization_exports: GitHubOrganizationExports = GitHubOrganizationExports()
     auth: GitHubAuthConfig
     include_actions_artifacts: bool = False
     retention_days: Optional[int] = None
 
-    @validator("repositories")
-    def _require_repositories(cls, value: List[GitHubRepositoryOptions]) -> List[GitHubRepositoryOptions]:  # noqa: N805
-        if not value:
-            raise ValueError("GitHub job must define at least one repository.")
-        return value
+    @root_validator
+    def _validate_repository_scope(cls, values: Dict[str, object]) -> Dict[str, object]:  # noqa: N805
+        repositories = values.get("repositories")
+        organization = values.get("organization")
+
+        if repositories is not None and not repositories and not organization:
+            raise ValueError(
+                "GitHub job must specify an organization when the repositories list is empty."
+            )
+
+        if repositories is None and not organization:
+            raise ValueError(
+                "GitHub job must specify an organization when repositories are omitted to perform a full backup."
+            )
+
+        return values
 
 
 # --- Job configuration -------------------------------------------------------

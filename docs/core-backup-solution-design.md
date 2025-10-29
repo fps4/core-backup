@@ -16,7 +16,7 @@
 
 - **CLI / Entrypoint**: Loads configuration, selects jobs to run, and configures logging.
 - **Orchestrator**: Applies retention policies, executes jobs, aggregates results, and emits status.
-- **Service Connector**: `github_backup` mirrors repositories, exports metadata, and produces manifests. Additional connectors can register with `core_backup.services.create_service`.
+- **Service Connector**: the GitHub service mirrors repositories, exports metadata, and produces manifests. Additional connectors can register with `core_backup.services.create_service`.
 - **Storage**: Host volume mounted at `/mnt/backup/github`. Each run writes `<YYYY-MM-DD>/<repo>_<timestamp>.tar.gz`, metadata directories, and `manifest.json`.
 
 ## Configuration Model

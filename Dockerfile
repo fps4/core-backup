@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src ./src
 RUN mkdir -p /opt/core-backup/config
-COPY config/core-backup.yaml.example /opt/core-backup/config/core-backup.yaml
+COPY config/core-backup.yaml /opt/core-backup/config/core-backup.yaml
 
 ENV PYTHONPATH=/app/src \
     CORE_BACKUP_CONFIG=/opt/core-backup/config/core-backup.yaml \
