@@ -1,3 +1,0 @@
-"""
-GitHub backup service package.
-"""

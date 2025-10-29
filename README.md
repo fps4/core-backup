@@ -10,26 +10,27 @@
 - Ships as a slim Python+Git Docker image ready for cron-driven execution.
 
 ## Quick Start
-1. Copy `config/github-backup.yaml.example` to `config/github-backup.yaml` (or point `CONFIG_PATH` at your own file) and adjust values for your organization. Provide a GitHub token or SSH key via mounted secrets.
+1. Copy `config/core-backup.yaml.example` to `config/core-backup.yaml` (or point `CORE_BACKUP_CONFIG` at your own file) and adjust values for your organization. Provide a GitHub token or SSH key via mounted secrets.
 2. Build the image:
    ```bash
    docker build -t github-backup .
    ```
-3. Run the container on a schedule, mounting your config and backup volume:
+3. Run the container, mounting your config and backup volume:
    ```bash
    docker run --rm \
-     -v /path/to/config:/opt/github-backup/config:ro \
-     -v /mnt/backups/github:/mnt/backups/github \
+     -v /path/to/config:/opt/core-backup/config:ro \
+     -v /mnt/backup/github:/mnt/backup/core \
      -e GITHUB_TOKEN=... \
      github-backup
    ```
 
 ## Configuration
-The service is configured via YAML (see `config/github-backup.yaml.example`). Key sections:
-- `github.repositories`: Optional list of repositories to back up, with per-repo flags. When omitted or empty and an organization is provided, the backup automatically targets every repository in the organization.
-- `github.organization_exports`: Enable organization-level exports.
-- `storage.base_path`: Host mount where dated backup folders are created.
-- `logging` / `notifications`: Optional log level and webhook parameters.
+The orchestrator is configured via YAML (see `config/core-backup.yaml.example`). Key sections:
+- `jobs`: Named backup jobs that reference a service (`github` today) and storage target. Each job provides authentication, repository options, and retention overrides.
+- `storage`: Host mounts where dated backup folders are created. The filesystem adapter writes `<job>/<YYYY-MM-DD>/`.
+- `notifications`: Optional Slack webhook reference.
+- `default_retention_days`: Fallback for jobs that don’t set retention explicitly.
+- `scheduler`: Optional cron expression to keep the container running and trigger all jobs automatically (see below).
 
 Secrets (e.g., `GITHUB_TOKEN`) should be provided through environment variables or mounted files rather than embedded in the YAML.
 
@@ -40,6 +41,19 @@ Production configuration now lives alongside the code in this repository under `
 - Export `GITHUB_TOKEN` (and any other credentials) before invoking `docker compose -f docker/compose.yaml -f docker/compose.prod.yaml up -d --build`.
 - Wrap these exports in a script or GitHub Actions workflow if you want a single command for operators; commit only the script templates—reference secrets from your vault at runtime.
 
+### Built-in Scheduler
+
+Add a `scheduler` block to `config/core-backup.yaml` to keep the container idling between runs:
+
+```yaml
+scheduler:
+  cron: "0 3 * * *"   # run daily at 03:00
+  timezone: "America/New_York"
+  run_on_startup: true # optional immediate run when the container starts
+```
+
+When the scheduler is present, the process remains up, executes the configured jobs on the cron cadence, and honours graceful shutdown (`docker stop`). Omit the block (or run `docker compose run --rm core-backup`) for one-shot backups.
+
 ## Local Development
 Install dependencies (Python 3.11+):
 ```bash
@@ -47,10 +61,9 @@ pip install -r requirements.txt
 ```
 Run locally with environment variables pointing at your configuration:
 ```bash
-export CONFIG_PATH=./config/github-backup.yaml
-export STORAGE_BASE_PATH=./backups
+export CORE_BACKUP_CONFIG=./config/core-backup.yaml
 export GITHUB_TOKEN=...
-python -m github_backup.entrypoint
+python -m core_backup.cli
 ```
 
 ## Roadmap Ideas

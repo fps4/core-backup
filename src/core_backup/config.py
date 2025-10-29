@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from typing import Dict, List, Literal, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field, root_validator, validator
+from croniter import CroniterBadCronError, croniter
 
 
 class ConfigurationError(Exception):
@@ -131,6 +134,7 @@ class CoreConfig(BaseModel):
     storage: StorageConfigMap
     notifications: NotificationsConfig = NotificationsConfig()
     default_retention_days: int = 30
+    scheduler: Optional["SchedulerConfig"] = None
 
     @validator("jobs")
     def _require_jobs(cls, value: List[JobConfig]) -> List[JobConfig]:  # noqa: N805
@@ -166,3 +170,28 @@ def load_config(path: Path) -> CoreConfig:
         return CoreConfig.parse_obj(raw)
     except Exception as exc:  # noqa: BLE001
         raise ConfigurationError(str(exc)) from exc
+
+
+class SchedulerConfig(BaseModel):
+    cron: str
+    timezone: str = "UTC"
+    run_on_startup: bool = True
+
+    @validator("cron")
+    def _validate_cron(cls, value: str) -> str:  # noqa: N805
+        try:
+            croniter(value, datetime.utcnow())
+        except (CroniterBadCronError, ValueError) as exc:  # pragma: no cover - library errors
+            raise ValueError(f"Invalid cron expression '{value}': {exc}") from exc
+        return value
+
+    @validator("timezone")
+    def _validate_timezone(cls, value: str) -> str:  # noqa: N805
+        try:
+            ZoneInfo(value)
+        except ZoneInfoNotFoundError as exc:  # pragma: no cover - library errors
+            raise ValueError(f"Unknown timezone '{value}'") from exc
+        return value
+
+
+CoreConfig.update_forward_refs(SchedulerConfig=SchedulerConfig)

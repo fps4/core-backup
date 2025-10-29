@@ -31,8 +31,12 @@ jobs:
 storage:
   local:
     type: filesystem
-    base_path: /mnt/backups/core
+    base_path: /mnt/backup/core
 default_retention_days: 30
+scheduler:
+  cron: "0 3 * * *"
+  timezone: "UTC"
+  run_on_startup: true
 ```
 
 ## Exit Codes
@@ -41,6 +45,7 @@ default_retention_days: 30
 - `2`: Configuration error (invalid YAML/schema).
 
 ## Operational Notes
-- Schedule the CLI via cron, systemd, or GitHub Actions using the Docker Compose wrapper documented in the project `README.md`.
+- Provide a `scheduler` block in the config to keep the container running and trigger jobs on the defined cron cadence; omit it when you prefer external orchestration.
+- Schedule the CLI via cron, systemd, or GitHub Actions using the Docker Compose wrapper documented in the project `README.md` when running one-shot jobs.
 - Configuration lives under `config/` in this repository; mount it via `BACKUP_CONFIG_DIR` and source secrets from your secrets manager at runtime.
 - Future connectors can register with `core_backup.services.create_service`; update the CLI docs when new services ship.

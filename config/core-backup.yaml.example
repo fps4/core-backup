@@ -21,7 +21,11 @@ jobs:
 storage:
   local:
     type: filesystem
-    base_path: /mnt/backups/core
+    base_path: /mnt/backup/core
 notifications:
   slack_webhook_env: SLACK_WEBHOOK
 default_retention_days: 30
+scheduler:
+  cron: "0 3 * * *"         # run daily at 03:00
+  timezone: "UTC"
+  run_on_startup: true

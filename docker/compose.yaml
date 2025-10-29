@@ -6,11 +6,13 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      CONFIG_PATH: ${CONFIG_PATH:-/opt/github-backup/config/github-backup.yaml}
-      STORAGE_BASE_PATH: ${STORAGE_BASE_PATH:-/mnt/backups/github}
+      CORE_BACKUP_CONFIG: ${CORE_BACKUP_CONFIG:-/opt/core-backup/config/core-backup.yaml}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     volumes:
       - type: bind
+        source: ${BACKUP_CONFIG_DIR:-../config}
+        target: /opt/core-backup/config
+      - type: bind
         source: ${BACKUP_DATA_DIR:-../backups}
-        target: /mnt/backups/github
+        target: /mnt/backup/core

@@ -17,7 +17,7 @@
 - **CLI / Entrypoint**: Loads configuration, selects jobs to run, and configures logging.
 - **Orchestrator**: Applies retention policies, executes jobs, aggregates results, and emits status.
 - **Service Connector**: `github_backup` mirrors repositories, exports metadata, and produces manifests. Additional connectors can register with `core_backup.services.create_service`.
-- **Storage**: Host volume mounted at `/mnt/backups/github`. Each run writes `<YYYY-MM-DD>/<repo>_<timestamp>.tar.gz`, metadata directories, and `manifest.json`.
+- **Storage**: Host volume mounted at `/mnt/backup/github`. Each run writes `<YYYY-MM-DD>/<repo>_<timestamp>.tar.gz`, metadata directories, and `manifest.json`.
 
 ## Configuration Model
 - Jobs are defined in `core-backup.yaml`, referencing named storage targets and service-specific `options`.
@@ -30,7 +30,7 @@
 ## Deployment Pattern
 - The codebase and default configuration live together in this repository.
 - Environment-specific configuration stays under `config/` (or another directory you pass through `BACKUP_CONFIG_DIR`); keep secrets in your vault and inject them at runtime via environment variables or mounted files.
-- Automation (GitHub Actions, cron, systemd timers) shells out to the compose file in `core-backup` while exporting `BACKUP_CONFIG_DIR`, `BACKUP_DATA_DIR`, and credentials, ensuring secrets never land in Git.
+- Automation (GitHub Actions, cron, systemd timers) shells out to the compose file in `core-backup` while exporting `BACKUP_CONFIG_DIR`, `BACKUP_DATA_DIR`, and credentials, ensuring secrets never land in Git. Alternatively, enable the in-container scheduler via the YAML `scheduler` block to keep the service resident and drive the cadence without an external cron.
 
 ## Data Retention & Observability
 - Each job enforces a configurable retention period (default 30 days) by pruning dated backup folders.

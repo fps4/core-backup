@@ -19,11 +19,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src ./src
-COPY config/*.yaml /opt/github-backup/config/
+RUN mkdir -p /opt/core-backup/config
+COPY config/core-backup.yaml.example /opt/core-backup/config/core-backup.yaml
 
 ENV PYTHONPATH=/app/src \
-    CONFIG_PATH=/opt/github-backup/config/github-backup.yaml \
-    STORAGE_BASE_PATH=/mnt/backups/github \
+    CORE_BACKUP_CONFIG=/opt/core-backup/config/core-backup.yaml \
     LOG_LEVEL=INFO
 
-ENTRYPOINT ["python", "-m", "github_backup.entrypoint"]
+ENTRYPOINT ["python", "-m", "core_backup.cli"]
