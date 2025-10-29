@@ -1,24 +1,46 @@
-# GitHub Backup Internal Usage
+# GitHub Backup Operations Guide
 
-The backup implementation lives in the `github-backup/` directory so we can split it into a standalone public repository (`github-backup`) while continuing to run it from this infrastructure repo.
+This document captures how we run the GitHub backup service while keeping sensitive configuration private.
 
-## Extraction Plan
-1. Once the public repository is created, copy the contents of `github-backup/` into it.
-2. Publish marketing-friendly documentation in the public repo (the shipped `README.md` is already generic).
-3. In this repo, track the public codebase via either:
-   - Git submodule: `git submodule add git@github.com:your-org/github-backup.git`.
-   - Git subtree or build artifact download during CI/CD.
+## Repository Layout
+- **Public code**: `core-backup` (this repository) contains the Docker image, CLI, and service implementation.
+- **Private configuration**: `project-core-backup` (private repo) stores YAML configs, environment overrides, and references to secrets (never the raw secrets themselves).
+- Repos should live as siblings, e.g.:
+  ```
+  ~/Projects/
+    core-backup/
+    project-core-backup/
+  ```
 
-## Private Deployment
-For deployments managed from this repository:
-1. Keep the internal configuration (with organization names, secrets, scheduling integration) outside of the `github-backup/` tree. Mount your deployment-specific config at runtime.
-2. Use `docker-compose` or host-level scheduling to run the `github-backup` image daily, mounting:
-   - `/mnt/backups/github/` to persistent storage.
-   - `/opt/github-backup/config/` to your private configuration directory.
-3. Store secrets (GitHub tokens, SSH keys) in your secret management solution and inject them as environment variables or short-lived files.
+## Running Backups from `project-core-backup`
+1. Clone both repositories side-by-side.
+2. In `project-core-backup`, maintain `config/github-backup.yaml` and any additional files the container should mount.
+3. Schedule or manually run the stack:
+   ```bash
+   cd ../project-core-backup
+   BACKUP_CONFIG_DIR=$(pwd)/config \
+   BACKUP_DATA_DIR=/srv/backups/github \
+   GITHUB_TOKEN=... \
+   docker compose -f ../core-backup/docker/compose.yaml \
+                  -f ../core-backup/docker/compose.prod.yaml up -d --build
+   ```
+   - `BACKUP_CONFIG_DIR` should point at the private config directory.
+   - `BACKUP_DATA_DIR` is the host path where dated backups will be written.
+   - Provide credentials via environment variables or Docker secrets; never commit them.
 
-## Customization Hooks
-- Additional collectors specific to internal needs can live under `extensions/` in this repo; register them via environment variables before invoking the container.
-- Organization-specific documentation (runbooks, restore procedures) should remain in `docs/` here and not be exported to the public repo.
+4. Optionally wrap the compose call in a script or GitHub Actions workflow inside `project-core-backup` so operators only interact with that private repo.
 
-Keep this document updated as we wire the external repository into CI/CD.
+## Configuration Tips
+- Leave `github.repositories` empty to back up every repository in the organization automatically. The token must have read access to the organization and its private repositories.
+- Override retention by setting `github.retention_days` or per-repo values.
+- Use `notifications.slack_webhook_env` to alert on failures; resolve the webhook secret via your secret manager at runtime.
+
+## Restore & Validation
+- Backups are stored under `<BACKUP_DATA_DIR>/<YYYY-MM-DD>/`.
+- Repository archives are bare mirrors (`*.tar.gz`). Restore with `tar -xzf repo.tar.gz && git clone repo.git`.
+- Metadata lives under `metadata/` as JSON payloads exported by the GitHub API.
+- The `manifest.json` file summarizes artifacts and errors for each run; inspect it when triaging alerts.
+
+## Keeping Things in Sync
+- Treat `core-backup` as the upstream; avoid editing code inside `project-core-backup`.
+- For local development, run unit tests or dry runs from `core-backup` but keep sample configs under `project-core-backup` to avoid leaking internal details.

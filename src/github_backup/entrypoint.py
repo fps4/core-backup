@@ -6,7 +6,7 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-from .config import ConfigError, load_config
+from .config import ConfigError, GitHubConfig, RepositoryConfig, load_config
 from .github_api import GitHubAPI
 from .logger import configure_logging, get_logger
 from .manifest import Manifest, RepositoryManifest
@@ -52,7 +52,21 @@ def main() -> int:
         LOG.error("Authentication error: %s", exc)
         return 2
 
-    for repo_cfg in cfg.github.repositories:
+    try:
+        target_repositories = _resolve_target_repositories(api, cfg.github)
+    except ConfigError as exc:
+        LOG.error("Repository resolution error: %s", exc)
+        return 2
+    except Exception as exc:  # noqa: BLE001
+        LOG.error("Unexpected error while discovering repositories: %s", exc)
+        LOG.debug("Traceback:\n%s", "".join(traceback.format_exc()))
+        return 2
+
+    if not target_repositories:
+        LOG.warning("No repositories discovered for backup")
+        return 0
+
+    for repo_cfg in target_repositories:
         manifest_entry = RepositoryManifest(
             name=repo_cfg.name if "/" in repo_cfg.name else f"{cfg.github.organization}/{repo_cfg.name}",
             archive_path="",
@@ -113,6 +127,36 @@ def main() -> int:
 
     LOG.info("Backup completed successfully")
     return 0
+
+
+def _resolve_target_repositories(api: GitHubAPI, github_cfg: GitHubConfig) -> list[RepositoryConfig]:
+    repositories = list(github_cfg.repositories)
+
+    if github_cfg.include_all_repositories:
+        repositories = _discover_all_repositories(api, github_cfg, repositories)
+
+    return repositories
+
+
+def _discover_all_repositories(
+    api: GitHubAPI,
+    github_cfg: GitHubConfig,
+    existing_repositories: list[RepositoryConfig],
+) -> list[RepositoryConfig]:
+    if not github_cfg.organization:
+        raise ConfigError("GitHub organization must be set to discover repositories automatically")
+
+    discovered: list[RepositoryConfig] = []
+    seen = {repo.name for repo in existing_repositories}
+
+    for repo in api.iterate(f"orgs/{github_cfg.organization}/repos", {"type": "all"}):
+        full_name = repo.get("full_name")
+        if not full_name or full_name in seen:
+            continue
+        discovered.append(RepositoryConfig(name=full_name))
+        seen.add(full_name)
+
+    return existing_repositories + discovered
 
 
 if __name__ == "__main__":

@@ -1,0 +1,4 @@
+services:
+  core-backup:
+    environment:
+      LOG_LEVEL: INFO

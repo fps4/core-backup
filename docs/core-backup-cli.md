@@ -1,6 +1,6 @@
 # Core Backup CLI Usage
 
-The `core_backup` package now exposes a generic job orchestrator capable of running multiple backup connectors. Use the CLI module to execute jobs defined in a YAML configuration file.
+The `core_backup` package exposes a lightweight orchestrator for running declarative backup jobs. In this repository the only bundled service is the GitHub connector, but the CLI remains generic so the same interface can drive future services.
 
 ## Invocation
 ```bash
@@ -8,28 +8,23 @@ python -m core_backup.cli --config /path/to/core-backup.yaml
 ```
 
 ### Arguments
-- `--config`: Path to the YAML configuration (defaults to `CORE_BACKUP_CONFIG` env var or `/opt/core-backup/config/core-backup.yaml`).
-- `--job`: Restrict execution to the named job. Repeat flag to run multiple jobs.
-- `--list-jobs`: Print job names and exit without running backups.
-- `--log-level`: Override log verbosity (defaults to `LOG_LEVEL` env var or `INFO`).
+- `--config`: Path to the YAML configuration (defaults to `CORE_BACKUP_CONFIG` or `/opt/core-backup/config/core-backup.yaml`).
+- `--job`: Restrict execution to one or more named jobs. Omit to run every job in the file.
+- `--list-jobs`: Print job names and exit.
+- `--log-level`: Overrides `LOG_LEVEL` (default `INFO`).
 
 ## Sample Configuration
-See `config/core-backup.yaml.example` for a full example. Configuration schema overview:
+See `config/core-backup.yaml.example` for the full schema. The GitHub connector supports automatic discovery when repositories are omitted:
 ```yaml
 jobs:
-  - name: github-daily
+  - name: github-org-backup
     service: github
     target_storage: local
-    retention_days: 30               # Optional; falls back to default_retention_days.
     options:
       organization: my-org
       auth:
         token_env: GITHUB_TOKEN
-      repositories:
-        - name: repo-one
-          include_projects: true
-        - name: repo-two
-          include_releases: true
+      repositories: []               # empty list => back up every repo in the org
       organization_exports:
         members: true
         projects: true
@@ -45,7 +40,7 @@ default_retention_days: 30
 - `1`: One or more jobs failed (manifest still written with errors).
 - `2`: Configuration error (invalid YAML/schema).
 
-## Next Steps
-- Create additional service connectors (MongoDB, Docker volume).
-- Extend storage adapters (S3, NFS).
-- Add integration tests (e.g., docker-compose-based) to exercise multi-job runs end-to-end.
+## Operational Notes
+- Schedule the CLI via cron, systemd, or GitHub Actions using the Docker Compose wrapper documented in the project `README.md`.
+- Configuration and secrets should live in the private `project-core-backup` repository and be mounted into the container via `BACKUP_CONFIG_DIR`.
+- Future connectors can register with `core_backup.services.create_service`; update the CLI docs when new services ship.

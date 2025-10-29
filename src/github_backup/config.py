@@ -51,6 +51,7 @@ class GitHubConfig:
     repositories: List[RepositoryConfig]
     organization_exports: OrganizationExportsConfig
     include_actions_artifacts: bool = False
+    include_all_repositories: bool = False
 
 
 @dataclasses.dataclass(frozen=True)
@@ -113,20 +114,26 @@ def _parse_org_exports(data: Dict[str, Any]) -> OrganizationExportsConfig:
 
 
 def _parse_github(data: Dict[str, Any]) -> GitHubConfig:
-    if "repositories" not in data or not data["repositories"]:
-        raise ConfigError("GitHub config must include at least one repository")
-
     retention = data.get("retention_days", DEFAULT_RETENTION_DAYS)
     if retention <= 0:
         raise ConfigError("Retention must be positive")
+
+    repositories_data = data.get("repositories") or []
+    include_all_repositories = False
+
+    if not repositories_data:
+        if not data.get("organization"):
+            raise ConfigError("GitHub config requires 'organization' when repositories are omitted")
+        include_all_repositories = True
 
     return GitHubConfig(
         organization=data.get("organization"),
         auth=_parse_auth(data.get("auth", {})),
         retention_days=retention,
-        repositories=[_parse_repository(repo) for repo in data["repositories"]],
+        repositories=[_parse_repository(repo) for repo in repositories_data],
         organization_exports=_parse_org_exports(data.get("organization_exports", {})),
         include_actions_artifacts=bool(data.get("include_actions_artifacts", False)),
+        include_all_repositories=include_all_repositories,
     )
 
 
