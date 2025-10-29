@@ -2,8 +2,8 @@ services:
   core-backup:
     container_name: core-backup
     build:
-      context: ${CORE_BACKUP_PATH:-../}
-      dockerfile: ${CORE_BACKUP_DOCKERFILE:-Dockerfile}
+      context: ../
+      dockerfile: Dockerfile
     restart: unless-stopped
     environment:
       CONFIG_PATH: ${CONFIG_PATH:-/opt/github-backup/config/github-backup.yaml}
