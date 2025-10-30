@@ -11,7 +11,7 @@ services:
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     volumes:
       - type: bind
-        source: ${BACKUP_DATA_DIR:-../backups}
+        source: ${BACKUP_DATA_DIR:-/mnt/backup/core}
         target: /mnt/backup/core
     networks:
       - net-backup
